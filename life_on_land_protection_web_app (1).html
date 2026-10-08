@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Life on Land Protection - Sanctuary & Community Hub</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Leaflet CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Google Fonts: Inter & Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        sage: {
+                            50: '#f4f7f4',
+                            100: '#e3ebe3',
+                            200: '#c8d8c7',
+                            500: '#52796f',
+                            600: '#354f52',
+                            700: '#2f3e46',
+                            800: '#1a2723',
+                            900: '#0f1a17',
+                        },
+                        earth: {
+                            100: '#f7f5ed',
+                            200: '#ebe5c2',
+                            300: '#e0d8a6',
+                            500: '#dda15e',
+                            600: '#bc6c25',
+                        },
+                        sky: {
+                            100: '#e0fbfc',
+                            300: '#98c1d9',
+                            500: '#70a9a1',
+                        },
+                        purplehub: {
+                            500: '#8A5CF6',
+                            600: '#7C3AED',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        outfit: ['Outfit', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f4f7f4;
+            color: #2f3e46;
+            overflow-x: hidden;
+        }
+
+        .font-heading {
+            font-family: 'Outfit', sans-serif;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #e3ebe3;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #8ba888;
+            border-radius: 999px;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+            border-radius: 1.5rem;
+            z-index: 10;
+        }
+
+        .leaflet-popup-content-wrapper {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 1rem;
+            padding: 4px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(227, 235, 227, 0.6);
+        }
+
+        @keyframes softPulse {
+            0% { transform: scale(1); opacity: 0.9; }
+            50% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(1); opacity: 0.9; }
+        }
+
+        .pulse-marker {
+            animation: softPulse 2.5s infinite ease-in-out;
+        }
+
+        .custom-pin {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            color: white;
+            font-size: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border: 2px solid white;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .custom-pin:hover {
+            transform: scale(1.15);
+        }
+
+        .pin-trash { background: linear-gradient(135deg, #ef4444, #dc2626); }
+        .pin-cleaned { background: linear-gradient(135deg, #10b981, #059669); }
+        .pin-traffic { background: linear-gradient(135deg, #f59e0b, #d97706); }
+        .pin-shelter { background: linear-gradient(135deg, #8b5cf6, #6d28d9); }
+
+        .tab-btn.active {
+            background-color: #354f52;
+            color: #ffffff;
+            box-shadow: 0 4px 12px rgba(53, 79, 82, 0.25);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col bg-sage-50 text-sage-700">
+
+    <!-- Header Navigation -->
+    <header class="sticky top-0 z-40 glass-panel border-b border-sage-100 px-4 md:px-8 py-3 transition-all duration-300">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <!-- Logo & Title -->
+            <div class="flex items-center space-x-3 cursor-pointer" onclick="switchTab('map')">
+                <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-sage-600 to-sky-500 flex items-center justify-center text-white shadow-md">
+                    <i class="fa-solid fa-leaf text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="font-heading font-bold text-xl md:text-2xl text-sage-800 tracking-tight leading-none">Life on Land</h1>
+                    <p class="text-xs text-sage-500 font-medium">Environmental & Community Care Hub</p>
+                </div>
+            </div>
+
+            <!-- Navigation Tabs -->
+            <nav class="hidden md:flex items-center space-x-1 bg-sage-100/70 p-1.5 rounded-2xl border border-sage-200">
+                <button onclick="switchTab('map')" id="nav-map" class="tab-btn active px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 flex items-center space-x-2">
+                    <i class="fa-solid fa-map-location-dot"></i>
+                    <span>Sanctuary Map</span>
+                </button>
+                <button onclick="switchTab('impact')" id="nav-impact" class="tab-btn px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 flex items-center space-x-2 text-sage-600 hover:text-sage-800">
+                    <i class="fa-solid fa-chart-line"></i>
+                    <span>Impact Reports</span>
+                </button>
+                <button onclick="switchTab('shelters')" id="nav-shelters" class="tab-btn px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 flex items-center space-x-2 text-sage-600 hover:text-sage-800">
+                    <i class="fa-solid fa-hand-holding-heart"></i>
+                    <span>Shelters & Care</span>
+                </button>
+                <button onclick="switchTab('donate')" id="nav-donate" class="tab-btn px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 flex items-center space-x-2 text-sage-600 hover:text-sage-800">
+                    <i class="fa-solid fa-circle-dollar-to-slot"></i>
+                    <span>Donate & Fund</span>
+                </button>
+            </nav>
+
+            <!-- Audio Relaxation Bar & Action CTA -->
+            <div class="flex items-center space-x-3">
+                <button id="soundToggleBtn" onclick="toggleAudio()" title="Toggle Relaxing Nature Audio" class="flex items-center space-x-2 px-3 py-2 bg-sage-100 hover:bg-sage-200 text-sage-700 rounded-xl transition-all text-xs font-medium border border-sage-200">
+                    <i id="soundIcon" class="fa-solid fa-volume-xmark text-sage-500"></i>
+                    <span id="soundLabel" class="hidden sm:inline">Nature Audio</span>
+                </button>
+
+                <button onclick="openReportModal()" class="bg-gradient-to-r from-sage-600 to-sage-700 hover:from-sage-700 hover:to-sage-800 text-white px-4 py-2 rounded-xl shadow-md hover:shadow-lg transition-all text-sm font-semibold flex items-center space-x-2">
+                    <i class="fa-solid fa-plus-circle"></i>
+                    <span class="hidden sm:inline">Report Issue</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Mobile Bottom Navigation -->
+    <div class="md:hidden fixed bottom-0 left-0 right-0 glass-panel border-t border-sage-200 z-40 px-3 py-2 flex justify-around items-center">
+        <button onclick="switchTab('map')" id="mobile-nav-map" class="flex flex-col items-center text-sage-800 font-semibold text-xs">
+            <i class="fa-solid fa-map-location-dot text-lg mb-0.5"></i>
+            <span>Map</span>
+        </button>
+        <button onclick="switchTab('impact')" id="mobile-nav-impact" class="flex flex-col items-center text-sage-500 font-medium text-xs">
+            <i class="fa-solid fa-chart-line text-lg mb-0.5"></i>
+            <span>Impact</span>
+        </button>
+        <button onclick="switchTab('shelters')" id="mobile-nav-shelters" class="flex flex-col items-center text-sage-500 font-medium text-xs">
+            <i class="fa-solid fa-hand-holding-heart text-lg mb-0.5"></i>
+            <span>Shelters</span>
+        </button>
+        <button onclick="switchTab('donate')" id="mobile-nav-donate" class="flex flex-col items-center text-sage-500 font-medium text-xs">
+            <i class="fa-solid fa-heart text-lg mb-0.5"></i>
+            <span>Donate</span>
+        </button>
+    </div>
+
+    <!-- MAIN CONTENT CONTAINER -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 pb-20 md:pb-6 flex flex-col">
+
+        <!-- TAB 1: SANCTUARY MAP DEFAULT -->
+        <div id="tab-map" class="tab-content flex-1 flex flex-col space-y-4">
+            
+            <!-- Area Banner -->
+            <div class="glass-panel rounded-2xl p-4 border border-sage-200 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-sm">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-full bg-earth-200 flex items-center justify-center text-earth-600 flex-shrink-0">
+                        <i class="fa-solid fa-mountain-sun text-lg"></i>
+                    </div>
+                    <div>
+                        <h2 class="font-heading font-semibold text-sage-800 text-sm md:text-base">Interactive Local Area Protection Map</h2>
+                        <p class="text-xs text-sage-600">Track real-time trash hotspots, traffic emissions, shelter outreach, and clean reserves.</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center space-x-2 text-xs">
+                    <span class="px-3 py-1.5 bg-red-50 text-red-700 rounded-full font-medium border border-red-200 flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-red-500 animate-ping"></span>
+                        <strong id="activeHotspotsCount">3</strong> Active Trash Pins
+                    </span>
+                    <span class="px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-full font-medium border border-emerald-200 flex items-center gap-1.5">
+                        <i class="fa-solid fa-circle-check text-xs"></i>
+                        <strong id="cleanedCount">2</strong> Restored Reserves
+                    </span>
+                </div>
+            </div>
+
+            <!-- Map View Container -->
+            <div class="relative flex-1 min-h-[460px] lg:min-h-[580px] rounded-3xl overflow-hidden shadow-lg border border-sage-200 flex flex-col">
+                
+                <!-- Floating Map Filter Bar -->
+                <div class="absolute top-4 left-4 right-4 z-20 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
+                    <div class="glass-panel p-1.5 rounded-2xl shadow-md flex items-center space-x-1 overflow-x-auto max-w-full pointer-events-auto border border-white/60">
+                        <button onclick="filterMap('all')" id="filter-all" class="filter-pill bg-sage-600 text-white text-xs px-3 py-1.5 rounded-xl font-medium shadow-sm transition-all">
+                            All Layers
+                        </button>
+                        <button onclick="filterMap('trash')" id="filter-trash" class="filter-pill bg-white/80 hover:bg-red-50 text-sage-700 hover:text-red-600 text-xs px-3 py-1.5 rounded-xl font-medium transition-all flex items-center gap-1">
+                            <span class="w-2 h-2 rounded-full bg-red-500"></span> Trash Hotspots
+                        </button>
+                        <button onclick="filterMap('cleaned')" id="filter-cleaned" class="filter-pill bg-white/80 hover:bg-emerald-50 text-sage-700 hover:text-emerald-600 text-xs px-3 py-1.5 rounded-xl font-medium transition-all flex items-center gap-1">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Restored Reserves
+                        </button>
+                        <button onclick="filterMap('traffic')" id="filter-traffic" class="filter-pill bg-white/80 hover:bg-amber-50 text-sage-700 hover:text-amber-600 text-xs px-3 py-1.5 rounded-xl font-medium transition-all flex items-center gap-1">
+                            <span class="w-2 h-2 rounded-full bg-amber-500"></span> Traffic & Emissions
+                        </button>
+                        <button onclick="filterMap('shelter')" id="filter-shelter" class="filter-pill bg-white/80 hover:bg-purple-50 text-sage-700 hover:text-purple-600 text-xs px-3 py-1.5 rounded-xl font-medium transition-all flex items-center gap-1">
+                            <span class="w-2 h-2 rounded-full bg-purple-500"></span> Shelter & Outreach
+                        </button>
+                    </div>
+
+                    <button onclick="recenterMap()" class="glass-panel hover:bg-white text-sage-700 p-2.5 rounded-2xl shadow-md pointer-events-auto transition-all text-xs flex items-center gap-1 font-semibold border border-white/80" title="Recenter Map View">
+                        <i class="fa-solid fa-location-crosshairs text-sage-600 text-sm"></i>
+                        <span class="hidden sm:inline">Center Map</span>
+                    </button>
+                </div>
+
+                <!-- Leaflet Interactive Canvas -->
+                <div id="map" class="w-full h-full bg-sage-100"></div>
+
+                <!-- Bottom Legend Bar -->
+                <div class="absolute bottom-4 left-4 right-4 z-20 pointer-events-none hidden sm:flex justify-between items-end">
+                    <div class="glass-panel p-2.5 rounded-2xl shadow-lg border border-white/80 pointer-events-auto max-w-md">
+                        <p class="text-xs text-sage-700 font-medium flex items-center gap-2">
+                            <i class="fa-solid fa-circle-info text-sky-500"></i>
+                            <span>Tap any pin to view local details, contribute funding, or volunteer for cleanup.</span>
+                        </p>
+                    </div>
+
+                    <button onclick="openReportModal()" class="glass-panel bg-sage-700 text-white hover:bg-sage-800 p-3 rounded-2xl shadow-xl border border-sage-600 pointer-events-auto flex items-center gap-2 text-xs font-semibold transition-all">
+                        <i class="fa-solid fa-map-pin text-earth-300"></i>
+                        <span>Report New Location</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: IMPACT & REPORTS -->
+        <div id="tab-impact" class="tab-content hidden flex-1 flex-col space-y-6">
+            <div class="glass-panel rounded-2xl p-6 border border-sage-200 shadow-sm bg-gradient-to-r from-sage-100/50 via-white to-sky-100/30">
+                <div class="max-w-3xl">
+                    <span class="px-3 py-1 bg-sage-200 text-sage-800 text-xs font-semibold rounded-full uppercase tracking-wider">Community Progress Overview</span>
+                    <h2 class="font-heading font-bold text-2xl md:text-3xl text-sage-800 mt-2">Life on Land Impact Dashboard</h2>
+                    <p class="text-sage-600 text-sm mt-1">Real-time stats on debris cleared, community donations, and active volunteer initiatives in your area.</p>
+                </div>
+
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+                    <div class="glass-card p-4 rounded-2xl border border-sage-200 bg-white/80">
+                        <div class="text-sage-500 text-xs font-medium uppercase">Trash Removed</div>
+                        <div class="font-heading text-2xl md:text-3xl font-bold text-sage-800 mt-1" id="statTrashLbs">18,450 lbs</div>
+                        <div class="text-xs text-emerald-600 font-medium mt-1 flex items-center gap-1">
+                            <i class="fa-solid fa-arrow-up text-xs"></i> +2,100 lbs this month
+                        </div>
+                    </div>
+                    <div class="glass-card p-4 rounded-2xl border border-sage-200 bg-white/80">
+                        <div class="text-sage-500 text-xs font-medium uppercase">Community Funds Raised</div>
+                        <div class="font-heading text-2xl md:text-3xl font-bold text-sage-800 mt-1" id="statFundsRaised">$28,400</div>
+                        <div class="text-xs text-emerald-600 font-medium mt-1 flex items-center gap-1">
+                            <i class="fa-solid fa-shield-heart"></i> 100% locally deployed
+                        </div>
+                    </div>
+                    <div class="glass-card p-4 rounded-2xl border border-sage-200 bg-white/80">
+                        <div class="text-sage-500 text-xs font-medium uppercase">Active Volunteers</div>
+                        <div class="font-heading text-2xl md:text-3xl font-bold text-sage-800 mt-1">620</div>
+                        <div class="text-xs text-sky-600 font-medium mt-1 flex items-center gap-1">
+                            <i class="fa-solid fa-users"></i> 18 community drives
+                        </div>
+                    </div>
+                    <div class="glass-card p-4 rounded-2xl border border-sage-200 bg-white/80">
+                        <div class="text-sage-500 text-xs font-medium uppercase">Supported Shelters</div>
+                        <div class="font-heading text-2xl md:text-3xl font-bold text-sage-800 mt-1">3 Major Hubs</div>
+                        <div class="text-xs text-purple-600 font-medium mt-1 flex items-center gap-1">
+                            <i class="fa-solid fa-hand-holding-heart"></i> 4,100 meals provided
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="space-y-4">
+                <div class="flex items-center justify-between">
+                    <h3 class="font-heading font-bold text-xl text-sage-800">Community Location Feed</h3>
+                    <button onclick="openReportModal()" class="text-xs text-sage-700 font-semibold hover:underline flex items-center gap-1">
+                        <i class="fa-solid fa-plus text-xs"></i> Add Area Report
+                    </button>
+                </div>
+
+                <div id="reportsListContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Populated dynamically via JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 3: LOCAL SHELTERS & COMMUNITY -->
+        <div id="tab-shelters" class="tab-content hidden flex-1 flex-col space-y-6">
+            <div class="glass-panel rounded-2xl p-6 border border-sage-200 shadow-sm bg-purple-50/50">
+                <div class="max-w-3xl">
+                    <span class="px-3 py-1 bg-purple-100 text-purple-800 text-xs font-semibold rounded-full uppercase tracking-wider">Compassionate Outreach</span>
+                    <h2 class="font-heading font-bold text-2xl md:text-3xl text-sage-800 mt-2">Community Homeless Shelters & Care</h2>
+                    <p class="text-sage-600 text-sm mt-1">Supporting local shelter hubs with essential hygiene supplies, hot meals, warm clothing, and housing placement services.</p>
+                </div>
+            </div>
+
+            <div id="shelterHubsGrid" class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                <!-- Dynamically Rendered -->
+            </div>
+        </div>
+
+        <!-- TAB 4: DONATE & ACTION -->
+        <div id="tab-donate" class="tab-content hidden flex-1 flex-col space-y-6">
+            <div class="max-w-4xl mx-auto w-full space-y-6">
+                <div class="glass-panel rounded-3xl p-6 md:p-8 border border-sage-200 text-center relative overflow-hidden bg-gradient-to-br from-sage-100 via-white to-earth-100">
+                    <div class="w-16 h-16 rounded-3xl bg-sage-600 text-white flex items-center justify-center text-2xl mx-auto mb-4 shadow-lg">
+                        <i class="fa-solid fa-hand-holding-dollar"></i>
+                    </div>
+                    <h2 class="font-heading font-bold text-2xl md:text-4xl text-sage-800">Support Life on Land Initiatives</h2>
+                    <p class="text-sage-600 text-sm md:text-base max-w-2xl mx-auto mt-2">Direct funding for riverbed cleanups, dirt trail debris removal, logistics corridor emissions monitoring, and shelter care assistance.</p>
+                </div>
+
+                <div class="glass-card rounded-3xl p-6 md:p-8 border border-sage-200 bg-white/90 shadow-md">
+                    <h3 class="font-heading font-bold text-xl text-sage-800 mb-4">Select Direct Impact Contribution</h3>
+                    
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+                        <button onclick="selectDonateAmount(20, this)" class="donation-btn py-4 rounded-2xl border-2 border-sage-200 hover:border-sage-500 bg-sage-50 hover:bg-sage-100 transition-all font-heading font-bold text-xl text-sage-800 flex flex-col items-center">
+                            <span>$20</span>
+                            <span class="text-[11px] font-normal text-sage-600 mt-1">River Trail Clean Kit</span>
+                        </button>
+                        <button onclick="selectDonateAmount(50, this)" class="donation-btn py-4 rounded-2xl border-2 border-sage-500 bg-sage-600 text-white shadow-md transition-all font-heading font-bold text-xl flex flex-col items-center">
+                            <span>$50</span>
+                            <span class="text-[11px] font-normal text-sage-100 mt-1">Shelter Meal Drive</span>
+                        </button>
+                        <button onclick="selectDonateAmount(100, this)" class="donation-btn py-4 rounded-2xl border-2 border-sage-200 hover:border-sage-500 bg-sage-50 hover:bg-sage-100 transition-all font-heading font-bold text-xl text-sage-800 flex flex-col items-center">
+                            <span>$100</span>
+                            <span class="text-[11px] font-normal text-sage-600 mt-1">Canyon Habitat Restoration</span>
+                        </button>
+                        <button onclick="selectDonateAmount(250, this)" class="donation-btn py-4 rounded-2xl border-2 border-sage-200 hover:border-sage-500 bg-sage-50 hover:bg-sage-100 transition-all font-heading font-bold text-xl text-sage-800 flex flex-col items-center">
+                            <span>$250</span>
+                            <span class="text-[11px] font-normal text-sage-600 mt-1">Eco Guardian Partner</span>
+                        </button>
+                    </div>
+
+                    <div class="mb-6">
+                        <label class="block text-xs font-semibold text-sage-600 uppercase mb-2">Custom Contribution ($)</label>
+                        <div class="relative">
+                            <span class="absolute left-4 top-3 text-sage-400 font-bold">$</span>
+                            <input type="number" id="customDonateInput" placeholder="Enter amount" oninput="clearDonationSelection()" class="w-full pl-8 pr-4 py-3 rounded-2xl border border-sage-200 focus:ring-2 focus:ring-sage-500 focus:outline-none bg-sage-50 text-sage-800 font-semibold text-lg">
+                        </div>
+                    </div>
+
+                    <div class="mb-6">
+                        <label class="block text-xs font-semibold text-sage-600 uppercase mb-2">Target Initiative</label>
+                        <select id="donationTarget" class="w-full px-4 py-3 rounded-2xl border border-sage-200 focus:ring-2 focus:ring-sage-500 focus:outline-none bg-sage-50 text-sage-800 font-medium">
+                            <option value="River Trail & Basin Cleanup">🌊 River Trail & Basin Cleanup Drive</option>
+                            <option value="Community Shelter & Food Outreach">💜 Shelter & Homeless Assistance Operations</option>
+                            <option value="Dirt Trail & Canyon Hill Cleanup">⛰️ Canyon Trail & Dirt Path Cleanup</option>
+                            <option value="Logistics Freight Eco Barrier">🚛 Freight Corridor Air Quality & Greening</option>
+                        </select>
+                    </div>
+
+                    <button onclick="processDonation()" class="w-full bg-gradient-to-r from-sage-600 to-sage-700 hover:from-sage-700 hover:to-sage-800 text-white font-heading font-bold text-lg py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-heart"></i>
+                        <span>Complete Tax-Deductible Donation</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- MODAL 1: REPORT NEW ISSUE MODAL -->
+    <div id="reportModal" class="fixed inset-0 z-50 bg-sage-900/40 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="glass-panel bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-sage-200 max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between pb-4 border-b border-sage-100">
+                <div class="flex items-center space-x-2">
+                    <div class="w-8 h-8 rounded-full bg-earth-200 text-earth-600 flex items-center justify-center">
+                        <i class="fa-solid fa-camera font-bold"></i>
+                    </div>
+                    <h3 class="font-heading font-bold text-lg text-sage-800">Report Local Area Issue</h3>
+                </div>
+                <button onclick="closeReportModal()" class="text-sage-400 hover:text-sage-700 p-1">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+
+            <form id="reportForm" onsubmit="submitReport(event)" class="space-y-4 mt-4">
+                <div>
+                    <label class="block text-xs font-semibold text-sage-600 uppercase mb-1">Issue Category</label>
+                    <select id="reportCategory" required class="w-full px-4 py-2.5 rounded-xl border border-sage-200 bg-sage-50 focus:ring-2 focus:ring-sage-500 focus:outline-none text-sm text-sage-800">
+                        <option value="trash">🗑️ Trash Hotspot / Illegal Dumping</option>
+                        <option value="shelter">💜 Homeless Shelter Need / Outreach Support</option>
+                        <option value="traffic">🚗 Traffic Emission / Bottleneck Hazard</option>
+                        <option value="cleaned">🟢 Cleaned / Restored Reserve Report</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-sage-600 uppercase mb-1">Title / Description</label>
+                    <input type="text" id="reportTitle" required placeholder="e.g. Cardboard & plastic dumped near river trail" class="w-full px-4 py-2.5 rounded-xl border border-sage-200 bg-sage-50 focus:ring-2 focus:ring-sage-500 focus:outline-none text-sm text-sage-800">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-sage-600 uppercase mb-1">Severity / Need</label>
+                        <select id="reportSeverity" class="w-full px-4 py-2.5 rounded-xl border border-sage-200 bg-sage-50 focus:ring-2 focus:ring-sage-500 focus:outline-none text-sm text-sage-800">
+                            <option value="Urgent Priority">Urgent Priority</option>
+                            <option value="Moderate Need">Moderate Need</option>
+                            <option value="Low / Minor">Low / Minor</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-sage-600 uppercase mb-1">City / Location</label>
+                        <input type="text" id="reportLocation" required placeholder="e.g. River Trailhead / Main St" class="w-full px-4 py-2.5 rounded-xl border border-sage-200 bg-sage-50 focus:ring-2 focus:ring-sage-500 focus:outline-none text-sm text-sage-800">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-sage-600 uppercase mb-1">Detailed Notes</label>
+                    <textarea id="reportDetails" rows="3" placeholder="Provide extra details (e.g., plastic waste volume, access landmarks)..." class="w-full px-4 py-2.5 rounded-xl border border-sage-200 bg-sage-50 focus:ring-2 focus:ring-sage-500 focus:outline-none text-sm text-sage-800"></textarea>
+                </div>
+
+                <div class="p-3 bg-sage-50 rounded-xl border border-sage-200 text-xs text-sage-600 flex items-start gap-2">
+                    <i class="fa-solid fa-map-pin text-sage-500 mt-0.5"></i>
+                    <span>Pin coordinates will automatically attach to current map center view.</span>
+                </div>
+
+                <div class="flex justify-end space-x-2 pt-2">
+                    <button type="button" onclick="closeReportModal()" class="px-4 py-2 rounded-xl text-sage-600 hover:bg-sage-100 text-sm font-medium">Cancel</button>
+                    <button type="submit" class="px-5 py-2 rounded-xl bg-sage-600 hover:bg-sage-700 text-white font-semibold text-sm shadow-md transition-all">Submit Map Pin</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 2: MAP PIN ITEM DETAILS MODAL -->
+    <div id="pinDetailModal" class="fixed inset-0 z-50 bg-sage-900/40 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="glass-panel bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-sage-200 max-h-[90vh] overflow-y-auto">
+            <div id="pinDetailContent">
+                <!-- Dynamically populated -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed bottom-20 md:bottom-6 right-6 z-50 glass-panel bg-sage-800 text-white px-5 py-3 rounded-2xl shadow-2xl border border-sage-600 hidden flex items-center space-x-3 transition-all duration-300">
+        <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400 text-lg"></i>
+        <span id="toastMsg" class="text-xs md:text-sm font-medium">Notification message</span>
+    </div>
+
+    <script>
+        // Sample Interactive Location Dataset
+        const ieSampleLocations = [
+            {
+                id: 'pin-1',
+                type: 'trash',
+                title: 'River Trailhead Debris Zone',
+                lat: 34.0610,
+                lng: -117.3220,
+                location: 'Santa Ana River Trail Basin',
+                severity: 'Urgent Priority',
+                description: 'Substantial plastic debris, single-use food packaging, and illegal dumping along the river corridor requiring community cleanup efforts.',
+                raised: 1450,
+                goal: 2500,
+                image: 'https://images.unsplash.com/photo-1618477461853-cf6ed80faba5?auto=format&fit=crop&w=600&q=80'
+            },
+            {
+                id: 'pin-2',
+                type: 'trash',
+                title: 'Pedley Dirt Trail Litter',
+                lat: 33.9850,
+                lng: -117.4700,
+                location: 'Jurupa Valley Ridge Trail',
+                severity: 'Urgent Priority',
+                description: 'Discarded logistics pallets, construction materials, and litter scattered along rural hillside paths.',
+                raised: 620,
+                goal: 1200,
+                image: 'https://images.unsplash.com/photo-1530587191325-3db32d826c18?auto=format&fit=crop&w=600&q=80'
+            },
+            {
+                id: 'pin-3',
+                type: 'trash',
+                title: 'Commerce Corridor Freight Litter',
+                lat: 34.0880,
+                lng: -117.4350,
+                location: 'Fontana Commerce Park',
+                severity: 'Moderate Need',
+                description: 'High volume packaging plastic and freight litter accumulating along drainage ditches and truck routes.',
+                raised: 310,
+                goal: 800,
+                image: 'https://images.unsplash.com/photo-1605600659873-d808a13e4d2a?auto=format&fit=crop&w=600&q=80'
+            },
+            {
+                id: 'pin-4',
+                type: 'shelter',
+                title: 'Central City Homeless Care Shelter',
+                lat: 34.1080,
+                lng: -117.2950,
+                location: 'Central San Bernardino Hub',
+                severity: 'High Need',
+                description: 'Essential shelter and hot meal program for individuals experiencing homelessness. Needs hygiene kits, blankets, and bottled water.',
+                raised: 3800,
+                goal: 5000,
+                image: 'https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=600&q=80'
+            },
+            {
+                id: 'pin-5',
+                type: 'shelter',
+                title: 'Path of Hope Family Shelter',
+                lat: 33.9780,
+                lng: -117.3750,
+                location: 'Riverside Community Corridor',
+                severity: 'High Need',
+                description: 'Emergency family shelter providing housing support, warm meals, and job placement assistance.',
+                raised: 2900,
+                goal: 4000,
+                image: 'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=600&q=80'
+            },
+            {
+                id: 'pin-6',
+                type: 'shelter',
+                title: 'Valley Hope Partners Food & Shelter Hub',
+                lat: 34.0630,
+                lng: -117.6500,
+                location: 'Ontario Community Center',
+                severity: 'Active',
+                description: 'Regional food pantry and emergency shelter support serving area families in need.',
+                raised: 2100,
+                goal: 3000,
+                image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=600&q=80'
+            },
+            {
+                id: 'pin-7',
+                type: 'cleaned',
+                title: 'San Timoteo Canyon Restored Reserve',
+                lat: 34.0320,
+                lng: -117.1850,
+                location: 'Redlands Open Space',
+                severity: 'Restored Reserve',
+                description: 'Restored riparian habitat! Over 2,400 lbs of litter removed by local student & resident volunteers.',
+                raised: 1500,
+                goal: 1500,
+                image: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=600&q=80'
+            },
+            {
+                id: 'pin-8',
+                type: 'cleaned',
+                title: 'Box Springs Mountain Trail Cleanup',
+                lat: 33.9650,
+                lng: -117.2800,
+                location: 'Moreno Valley Ridge',
+                severity: 'Restored Reserve',
+                description: 'Successful trail restoration drive! 1,200 lbs of trash collected along hillside hiking paths.',
+                raised: 1000,
+                goal: 1000,
+                image: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=600&q=80'
+            },
+            {
+                id: 'pin-9',
+                type: 'traffic',
+                title: 'Highland Interchange Eco Corridor',
+                lat: 34.0720,
+                lng: -117.3150,
+                location: 'Colton Interchange Area',
+                severity: 'Freight Traffic Zone',
+                description: 'High density freight traffic area under air quality monitoring. Green vegetative sound barriers planned.',
+                raised: 850,
+                goal: 2000,
+                image: 'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?auto=format&fit=crop&w=600&q=80'
+            }
+        ];
+
+        let map;
+        let markersGroup;
+        let selectedDonationAmount = 50;
+        let audioCtx = null;
+        let isAudioPlaying = false;
+        let noiseNode = null;
+
+        const CENTER_LAT = 34.0739;
+        const CENTER_LNG = -117.3137;
+
+        window.onload = function() {
+            initMap();
+            renderReportsList();
+            renderShelterGrid();
+            updateStatsCounts();
+        };
+
+        function initMap() {
+            map = L.map('map', {
+                zoomControl: false,
+                attributionControl: false
+            }).setView([CENTER_LAT, CENTER_LNG], 11);
+
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+                maxZoom: 19,
+                subdomains: 'abcd',
+            }).addTo(map);
+
+            L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+            markersGroup = L.layerGroup().addTo(map);
+            renderMarkers('all');
+        }
+
+        function renderMarkers(filterType = 'all') {
+            markersGroup.clearLayers();
+
+            ieSampleLocations.forEach(item => {
+                if (filterType !== 'all' && item.type !== filterType) return;
+
+                let iconClass = 'pin-trash';
+                let iconSymbol = 'fa-trash-can';
+
+                if (item.type === 'cleaned') {
+                    iconClass = 'pin-cleaned';
+                    iconSymbol = 'fa-check';
+                } else if (item.type === 'traffic') {
+                    iconClass = 'pin-traffic';
+                    iconSymbol = 'fa-truck-front';
+                } else if (item.type === 'shelter') {
+                    iconClass = 'pin-shelter';
+                    iconSymbol = 'fa-hand-holding-heart';
+                }
+
+                const customIcon = L.divIcon({
+                    className: 'custom-leaflet-pin',
+                    html: `<div class="custom-pin ${iconClass} pulse-marker"><i class="fa-solid ${iconSymbol}"></i></div>`,
+                    iconSize: [36, 36],
+                    iconAnchor: [18, 18]
+                });
+
+                const marker = L.marker([item.lat, item.lng], { icon: customIcon });
+
+                const popupHtml = `
+                    <div class="p-2 text-sage-800">
+                        <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-sage-100 text-sage-700">${item.location}</span>
+                        <h4 class="font-heading font-bold text-sm mt-1 text-sage-900">${item.title}</h4>
+                        <p class="text-xs text-sage-600 line-clamp-2 mt-1">${item.description}</p>
+                        <div class="mt-3 flex items-center justify-between border-t border-sage-100 pt-2">
+                            <span class="text-xs font-semibold text-emerald-600">$${item.raised} raised</span>
+                            <button onclick="openPinDetail('${item.id}')" class="text-xs bg-sage-700 text-white px-2.5 py-1 rounded-lg font-medium hover:bg-sage-800 transition-all">Inspect Spot</button>
+                        </div>
+                    </div>
+                `;
+
+                marker.bindPopup(popupHtml);
+                markersGroup.addLayer(marker);
+            });
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            const desktopNav = document.getElementById(`nav-${tabId}`);
+            if (desktopNav) desktopNav.classList.add('active');
+
+            if (tabId === 'map' && map) {
+                setTimeout(() => map.invalidateSize(), 150);
+            }
+        }
+
+        function filterMap(category) {
+            document.querySelectorAll('.filter-pill').forEach(btn => {
+                btn.className = 'filter-pill bg-white/80 text-sage-700 text-xs px-3 py-1.5 rounded-xl font-medium transition-all';
+            });
+
+            const activeBtn = document.getElementById(`filter-${category}`);
+            if (activeBtn) {
+                activeBtn.className = 'filter-pill bg-sage-600 text-white text-xs px-3 py-1.5 rounded-xl font-medium shadow-sm transition-all';
+            }
+
+            renderMarkers(category);
+        }
+
+        function recenterMap() {
+            if (map) {
+                map.setView([CENTER_LAT, CENTER_LNG], 11, { animate: true });
+                showToast('Map centered to local area.', 'info');
+            }
+        }
+
+        function openPinDetail(pinId) {
+            const item = ieSampleLocations.find(loc => loc.id === pinId);
+            if (!item) return;
+
+            const percent = Math.min(100, Math.round((item.raised / item.goal) * 100));
+
+            const html = `
+                <div class="relative">
+                    <img src="${item.image}" alt="${item.title}" class="w-full h-44 object-cover rounded-2xl shadow-sm mb-4">
+                    <button onclick="closePinModal()" class="absolute top-2 right-2 bg-black/50 text-white hover:bg-black/80 w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-md">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+                <div class="flex items-center space-x-2 mb-2">
+                    <span class="text-xs px-2.5 py-0.5 rounded-full font-bold uppercase bg-sage-100 text-sage-800">${item.severity}</span>
+                    <span class="text-xs text-sage-500 font-medium"><i class="fa-solid fa-location-dot"></i> ${item.location}</span>
+                </div>
+                <h3 class="font-heading font-bold text-xl text-sage-800 mb-2">${item.title}</h3>
+                <p class="text-sage-600 text-sm mb-4 leading-relaxed">${item.description}</p>
+
+                <div class="bg-sage-50 p-4 rounded-2xl border border-sage-200 mb-4">
+                    <div class="flex justify-between text-xs font-semibold text-sage-700 mb-1">
+                        <span>Fundraising Goal</span>
+                        <span>$${item.raised} / $${item.goal} (${percent}%)</span>
+                    </div>
+                    <div class="w-full bg-sage-200 h-2.5 rounded-full overflow-hidden">
+                        <div class="bg-emerald-500 h-full rounded-full transition-all duration-500" style="width: ${percent}%"></div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="quickDonateToPin('${item.id}')" class="w-full bg-sage-600 hover:bg-sage-700 text-white font-semibold py-3 rounded-xl text-sm transition-all flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-heart"></i> Donate $25
+                    </button>
+                    <button onclick="joinVolunteer('${item.title}')" class="w-full bg-sage-100 hover:bg-sage-200 text-sage-800 font-semibold py-3 rounded-xl text-sm transition-all border border-sage-200 flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-hands-holding-child"></i> Volunteer
+                    </button>
+                </div>
+            `;
+
+            document.getElementById('pinDetailContent').innerHTML = html;
+            document.getElementById('pinDetailModal').classList.remove('hidden');
+        }
+
+        function closePinModal() {
+            document.getElementById('pinDetailModal').classList.add('hidden');
+        }
+
+        function openReportModal() {
+            document.getElementById('reportModal').classList.remove('hidden');
+        }
+
+        function closeReportModal() {
+            document.getElementById('reportModal').classList.add('hidden');
+        }
+
+        function submitReport(event) {
+            event.preventDefault();
+            
+            const category = document.getElementById('reportCategory').value;
+            const title = document.getElementById('reportTitle').value;
+            const severity = document.getElementById('reportSeverity').value;
+            const location = document.getElementById('reportLocation').value;
+            const details = document.getElementById('reportDetails').value;
+
+            const mapCenter = map ? map.getCenter() : { lat: CENTER_LAT, lng: CENTER_LNG };
+            
+            // Random offset slightly from center so pins don't overlap exactly
+            const lat = mapCenter.lat + (Math.random() - 0.5) * 0.02;
+            const lng = mapCenter.lng + (Math.random() - 0.5) * 0.02;
+
+            const newPin = {
+                id: `pin-${Date.now()}`,
+                type: category,
+                title: title,
+                lat: lat,
+                lng: lng,
+                location: location,
+                severity: severity,
+                description: details || 'User reported community issue requiring volunteer action or municipal review.',
+                raised: 0,
+                goal: 1000,
+                image: 'https://images.unsplash.com/photo-1530587191325-3db32d826c18?auto=format&fit=crop&w=600&q=80'
+            };
+
+            ieSampleLocations.unshift(newPin);
+            renderMarkers('all');
+            renderReportsList();
+            updateStatsCounts();
+
+            closeReportModal();
+            document.getElementById('reportForm').reset();
+            showToast('New location pin submitted to the area map!', 'success');
+        }
+
+        function renderReportsList() {
+            const container = document.getElementById('reportsListContainer');
+            if (!container) return;
+
+            container.innerHTML = ieSampleLocations.map(item => `
+                <div class="glass-card p-4 rounded-2xl border border-sage-200 hover:shadow-md transition-all flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                                item.type === 'trash' ? 'bg-red-100 text-red-700' :
+                                item.type === 'cleaned' ? 'bg-emerald-100 text-emerald-700' :
+                                item.type === 'shelter' ? 'bg-purple-100 text-purple-700' : 'bg-amber-100 text-amber-700'
+                            }">${item.type}</span>
+                            <span class="text-xs text-sage-500 font-medium">${item.location}</span>
+                        </div>
+                        <h4 class="font-heading font-bold text-base text-sage-800">${item.title}</h4>
+                        <p class="text-xs text-sage-600 mt-1 line-clamp-2">${item.description}</p>
+                    </div>
+
+                    <div class="mt-4 pt-3 border-t border-sage-100 flex items-center justify-between">
+                        <span class="text-xs font-bold text-emerald-600">$${item.raised} Raised</span>
+                        <button onclick="openPinDetail('${item.id}')" class="text-xs bg-sage-600 hover:bg-sage-700 text-white px-3 py-1.5 rounded-xl font-medium transition-all">
+                            View & Help
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderShelterGrid() {
+            const container = document.getElementById('shelterHubsGrid');
+            if (!container) return;
+
+            const shelters = ieSampleLocations.filter(i => i.type === 'shelter');
+            
+            container.innerHTML = shelters.map(s => `
+                <div class="glass-card p-5 rounded-3xl border border-purple-100 bg-white/90 shadow-sm flex flex-col justify-between">
+                    <div>
+                        <div class="w-10 h-10 rounded-2xl bg-purple-100 text-purple-700 flex items-center justify-center text-lg mb-3">
+                            <i class="fa-solid fa-hand-holding-heart"></i>
+                        </div>
+                        <h3 class="font-heading font-bold text-lg text-sage-800">${s.title}</h3>
+                        <p class="text-xs text-sage-500 font-medium mb-2">${s.location}</p>
+                        <p class="text-xs text-sage-600 leading-relaxed mb-4">${s.description}</p>
+                    </div>
+
+                    <div>
+                        <div class="bg-purple-50 p-3 rounded-xl border border-purple-100 mb-4">
+                            <div class="flex justify-between text-xs font-semibold text-purple-900 mb-1">
+                                <span>Shelter Support Fund</span>
+                                <span>$${s.raised} / $${s.goal}</span>
+                            </div>
+                            <div class="w-full bg-purple-200 h-2 rounded-full overflow-hidden">
+                                <div class="bg-purple-600 h-full rounded-full" style="width: ${Math.min(100, Math.round((s.raised/s.goal)*100))}%"></div>
+                            </div>
+                        </div>
+
+                        <button onclick="openPinDetail('${s.id}')" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2.5 rounded-xl text-xs transition-all shadow-sm">
+                            Support Shelter Hub
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateStatsCounts() {
+            const trashCount = ieSampleLocations.filter(i => i.type === 'trash').length;
+            const cleanedCount = ieSampleLocations.filter(i => i.type === 'cleaned').length;
+            
+            const activeEl = document.getElementById('activeHotspotsCount');
+            const cleanedEl = document.getElementById('cleanedCount');
+
+            if (activeEl) activeEl.innerText = trashCount;
+            if (cleanedEl) cleanedEl.innerText = cleanedCount;
+        }
+
+        function toggleAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+
+            if (isAudioPlaying) {
+                stopNatureAudio();
+                isAudioPlaying = false;
+                document.getElementById('soundIcon').className = 'fa-solid fa-volume-xmark text-sage-500';
+                document.getElementById('soundLabel').innerText = 'Nature Audio';
+                showToast('Relaxation nature audio muted', 'info');
+            } else {
+                startNatureAudio();
+                isAudioPlaying = true;
+                document.getElementById('soundIcon').className = 'fa-solid fa-volume-high text-emerald-600 animate-pulse';
+                document.getElementById('soundLabel').innerText = 'Audio Playing';
+                showToast('Playing relaxing ambient nature soundscape', 'success');
+            }
+        }
+
+        function startNatureAudio() {
+            if (!audioCtx) return;
+
+            // Generate soothing synthesized brown/pink noise (wind/forest rustle)
+            const bufferSize = audioCtx.sampleRate * 2;
+            const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const output = noiseBuffer.getChannelData(0);
+            let lastOut = 0.0;
+
+            for (let i = 0; i < bufferSize; i++) {
+                const white = Math.random() * 2 - 1;
+                output[i] = (lastOut + (0.02 * white)) / 1.02;
+                lastOut = output[i];
+                output[i] *= 3.5;
+            }
+
+            noiseNode = audioCtx.createBufferSource();
+            noiseNode.buffer = noiseBuffer;
+            noiseNode.loop = true;
+
+            const filter = audioCtx.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.value = 350;
+
+            const gain = audioCtx.createGain();
+            gain.gain.value = 0.15;
+
+            noiseNode.connect(filter);
+            filter.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            noiseNode.start();
+        }
+
+        function stopNatureAudio() {
+            if (noiseNode) {
+                try {
+                    noiseNode.stop();
+                } catch(e){}
+            }
+        }
+
+        function selectDonateAmount(amount, btnElement) {
+            selectedDonationAmount = amount;
+            document.querySelectorAll('.donation-btn').forEach(b => {
+                b.className = 'donation-btn py-4 rounded-2xl border-2 border-sage-200 hover:border-sage-500 bg-sage-50 hover:bg-sage-100 transition-all font-heading font-bold text-xl text-sage-800 flex flex-col items-center';
+            });
+
+            btnElement.className = 'donation-btn py-4 rounded-2xl border-2 border-sage-500 bg-sage-600 text-white shadow-md transition-all font-heading font-bold text-xl flex flex-col items-center';
+            document.getElementById('customDonateInput').value = '';
+        }
+
+        function clearDonationSelection() {
+            document.querySelectorAll('.donation-btn').forEach(b => {
+                b.className = 'donation-btn py-4 rounded-2xl border-2 border-sage-200 hover:border-sage-500 bg-sage-50 hover:bg-sage-100 transition-all font-heading font-bold text-xl text-sage-800 flex flex-col items-center';
+            });
+            const customVal = parseFloat(document.getElementById('customDonateInput').value);
+            if (customVal && customVal > 0) {
+                selectedDonationAmount = customVal;
+            }
+        }
+
+        function processDonation() {
+            const customVal = parseFloat(document.getElementById('customDonateInput').value);
+            const amount = customVal > 0 ? customVal : selectedDonationAmount;
+            const target = document.getElementById('donationTarget').value;
+
+            // Update stats
+            const fundsEl = document.getElementById('statFundsRaised');
+            if (fundsEl) {
+                const current = parseInt(fundsEl.innerText.replace(/[^0-9]/g, '')) || 28400;
+                fundsEl.innerText = `$${(current + amount).toLocaleString()}`;
+            }
+
+            showToast(`Thank you! $${amount} donated to ${target}!`, 'success');
+        }
+
+        function quickDonateToPin(pinId) {
+            const item = ieSampleLocations.find(loc => loc.id === pinId);
+            if (item) {
+                item.raised += 25;
+                showToast(`Donated $25 to ${item.title}!`, 'success');
+                openPinDetail(pinId);
+                renderReportsList();
+                renderShelterGrid();
+            }
+        }
+
+        function joinVolunteer(title) {
+            showToast(`You signed up to volunteer for: ${title}!`, 'success');
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toastMsg');
+            const toastIcon = document.getElementById('toastIcon');
+
+            toastMsg.innerText = message;
+
+            if (type === 'success') {
+                toastIcon.className = 'fa-solid fa-circle-check text-emerald-400 text-lg';
+            } else {
+                toastIcon.className = 'fa-solid fa-circle-info text-sky-400 text-lg';
+            }
+
+            toast.classList.remove('hidden');
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 3500);
+        }
+    </script>
+</body>
+</html>
